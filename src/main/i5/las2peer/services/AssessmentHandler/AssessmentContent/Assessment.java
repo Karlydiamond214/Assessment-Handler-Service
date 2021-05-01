@@ -9,13 +9,35 @@ public abstract class Assessment {
 	private int currentQuestion;
 	private String currentWrongQuestions;
 	private ArrayList<String> questions; 
+	private ArrayList<String> textlevel;
+	private ArrayList<Double> similarityScore;
+	private ArrayList<String> textReference;
+	private String type;
+	private ArrayList<Double> questionWeight;
 	
-	public Assessment(String quitIntent, ArrayList<String> questions) {
+	public Assessment(String quitIntent, ArrayList<String> questions,private String type, ArrayList<String> textrefref) {
 		this.quitIntent = quitIntent;
 		this.questions = questions;
 		this.marks = 0;
 		this.currentQuestion = 0;
 		this.currentWrongQuestions = "";
+		this.textReference = textrefref;
+		this.type = type;
+	}
+	public Assessment(String quitIntent, ArrayList<String> questions,private String type, ArrayList<String> textrefref,  ArrayList<Double> questionWeight ) {
+		this.quitIntent = quitIntent;
+		this.questions = questions;
+		this.marks = 0;
+		this.currentQuestion = 0;
+		this.currentWrongQuestions = "";
+		this.textReference = textrefref;
+		this.type = type;
+		this.questionWeight =questionWeight;
+	}
+
+	
+	public String getType(){
+		return this.type;
 	}
 
 	public String getQuitIntent() {
@@ -53,6 +75,25 @@ public abstract class Assessment {
 	public String getCurrentQuestion() {
 		return this.questions.get(this.getCurrentQuestionNumber());
 	}
+	public Double getCurrentQuestionWeight() {
+		return this.questionWeight.get(this.getCurrentQuestionNumber());
+	}
+
+	public void setLevel(String level){
+		this.textlevel.set(this.getCurrentQuestionNumber(), level);
+	}
+
+	public void setSimilarity(double score){
+		this.similarityScore.set(this.getCurrentQuestionNumber(), score);
+	}
+	public ArrayList<Double> getSimilarityScoreList(){
+		return this.similarityScore;
+	}
+	public ArrayList<String> getLevelList(){
+		return this.textlevel;
+	}
+
+	
 	
 	
 	

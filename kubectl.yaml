@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: assessment_handler
+  name: assessment_handler
+  namespace: ma-zeufack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assessment_handler
+  template:
+    metadata:
+      labels:
+        app: assessment_handler
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - tech4compslave1
+      containers:
+      - name: readerbench
+        image: "karlydiamond214/assessment_handler"
+        imagePullPolicy: Always
+        env:
+        - name: BOOTSTRAP
+          value: "las2peer:31321"
+        - name: LAS2PEER_PORT
+          value: "31014"
+        - name: MYSQL_USER
+          value: user
+        - name: MYSQL_PASSWORD
+          value: root
+        - name: MYSQL_HOST
+          value: 'mysql-service'
+        - name: SERVICE_EXTRA_ARGS
+          value: "--observer"
+        
+
+
+#This is Service Configuration Kube definition
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assessment_handler
+  namespace: ma-zeufack
+spec:
+  selector:
+    app: assessment_handler 
+  ports:
+  - port: 31015
+    name: las2peer
+    targetPort: 31015
+    protocol: TCP
+  - port: 31015
+    targetPort: 31015
+    name: las2peer-pastry
+    protocol: UDP
+  type: ClusterIP
+

@@ -7,8 +7,9 @@ public class NLUAssessment extends Assessment {
 	private String helpIntent;
 	private ArrayList<String> intents;
 	private ArrayList<String> hints;
-	public NLUAssessment(String quitIntent, ArrayList<String> questions, ArrayList<String> intents, ArrayList<String> hints, String helpIntent) {
-		super(quitIntent, questions);
+	private String type;
+	public NLUAssessment(String quitIntent, ArrayList<String> questions, ArrayList<String> intents, ArrayList<String> hints, String helpIntent, String type, ArrayList<String> textref, ArrayList<Double> questionWeight) {
+		super(quitIntent, questions, type, textref, questionWeight );
 		this.helpIntent = helpIntent;
 		this.intents = intents;
 		this.hints = hints;
@@ -16,6 +17,9 @@ public class NLUAssessment extends Assessment {
 	
 	public String getCorrectAnswerIntent() {
 		return this.intents.get(this.getCurrentQuestionNumber());
+	}
+	public String gettextReference(){
+		return this.textReference.get(this.getCurrentQuestionNumber());
 	}
 	
 	public String getQuestionHint() {

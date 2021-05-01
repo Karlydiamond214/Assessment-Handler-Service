@@ -245,7 +245,7 @@ public class AssessmentHandlerService extends RESTService {
 							 topicNumber++;
 						}
 						if(!topicNames.equals("")) {
-							response.put("text", "Wähle ein Quiz indem du mit der entsprechenden Nummer oder dem entsprechenden Name antwortest:\n" + topicNames);
+							response.put("text", "Wähle ein Thema indem du mit der entsprechenden Nummer oder dem entsprechenden Name antwortest:\n" + topicNames);
 							response.put("closeContext", false);
 							this.topicsProposed.put(channel, true);
 							return Response.ok().entity(response).build();
@@ -313,7 +313,15 @@ public class AssessmentHandlerService extends RESTService {
         JSONArray Sequence =(JSONArray) content.get("Sequence");
         JSONArray Questions =(JSONArray) content.get("Questions");
         JSONArray Intents =(JSONArray) content.get("Intents");
-        JSONArray Hints =(JSONArray) content.get("Hints");
+		JSONArray Hints =(JSONArray) content.get("Hints");
+		//Adding the element for the text Assessment
+		JSONArray Lectureref =(JSONArray) content.get("textref");
+		JSONArray QuestionWeight =(JSONArray) content.get("questionWeight");
+		JSONObject Type =(JSONObject) content.get("Type");
+
+
+
+
         int length = Questions.size(); 
         int max = 0;
         String[][] assessmentContent = new String[length][4];
@@ -329,7 +337,9 @@ public class AssessmentHandlerService extends RESTService {
             assessmentContent[i][0] = Sequence.get(i).toString();
             assessmentContent[i][1] = Questions.get(i).toString();
             assessmentContent[i][2] = Intents.get(i).toString();
-            assessmentContent[i][3] = Hints.get(i).toString();     
+			assessmentContent[i][3] = Hints.get(i).toString();  
+			assessmentContent[i][4] = Lectureref.get(i).toString(); 
+			assessmentContent[i][5] = QuestionWeight.get(i).toString();      
         }
         
         // to fill out the blank sequence slots
@@ -347,14 +357,20 @@ public class AssessmentHandlerService extends RESTService {
         Arrays.sort(assessmentContent, (a, b) -> Integer.compare(Integer.parseInt(a[0]), Integer.parseInt(b[0])));
         ArrayList<String> questions = new ArrayList<String>();
         ArrayList<String> intents = new ArrayList<String>();
-        ArrayList<String> hints = new ArrayList<String>();
+		ArrayList<String> hints = new ArrayList<String>();
+		ArrayList<String> lectureref = new ArrayList<String>();
+		ArrayList<Double> questionWeight = new  ArrayList<Double>();
+		String type = content.getAsString("Type");;
         for(int i = 0; i < length ; i++){
         	questions.add(assessmentContent[i][1]);
         	intents.add(assessmentContent[i][2]);
-        	hints.add(assessmentContent[i][3]);
-            System.out.println(assessmentContent[i][0] + " " + assessmentContent[i][1] + " " + assessmentContent[i][2] + " " + assessmentContent[i][3]);
+			hints.add(assessmentContent[i][3]);
+			lectureref.add(assessmentContent[i][4]);
+			questionWeight.add(assessmentContent[i][5]);
+			System.out.println(assessmentContent[i][0] + " " + assessmentContent[i][1] + " " + assessmentContent[i][2] + " " + assessmentContent[i][3]+ " " 
+			+ assessmentContent[i][4]+ " " + assessmentContent[i][5]);
         } 
-        NLUAssessment assessment = new NLUAssessment(quitIntent, questions, intents, hints, helpIntent);
+        NLUAssessment assessment = new NLUAssessment(quitIntent, questions, intents, hints, helpIntent, type, lectureRef);
         this.currentNLUAssessment.put(channel, assessment);
         this.assessmentStarted.put(channel, "true");	
   		
@@ -379,6 +395,7 @@ public class AssessmentHandlerService extends RESTService {
 	        	answer+= assessment.getQuestionHint() + "\n";
 	        	response.put("closeContext", "false");
 	        } else { 
+
 		        if(intent.equals(assessment.getCorrectAnswerIntent())){
 		            answer += "Correct Answer! \n";
 		            assessment.incrementMark(1);
@@ -399,36 +416,84 @@ public class AssessmentHandlerService extends RESTService {
 	        }
 	        
         } else if(assessmentType.equals("NLUAssessmentDe")) {
-        	NLUAssessment assessment = this.currentNLUAssessment.get(channel);
-	        if(intent.equals(assessment.getQuitIntent())){
-	        	answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getMarks() + "/" + assessment.getCurrentQuestionNumber() + " Fragen richtig beantwortet! \n"; 
-	            if(assessment.getMarks() == assessment.getCurrentQuestionNumber()) {
-	            	answer += "Du hast keine falsche Antworten!";
-	            } else answer +=  "Du hast folgende Fragen falsch beantwortet: \n" + assessment.getWrongQuestions();
-	        	this.assessmentStarted.put(channel, null);
-	            response.put("closeContext", "true");
-	        } else if(intent.equals(assessment.getHelpIntent())){
-	        	answer+= assessment.getQuestionHint() + "\n";
-	        	response.put("closeContext", "false");
-	        } else { 
-		        if(intent.equals(assessment.getCorrectAnswerIntent())){
-		            answer += "Richtige Antwort! \n";
-		            assessment.incrementMark(1);
-		        } else {
-		        	answer += "Falsche Antwort :/ \n";
-		        	assessment.addWrongQuestion();
-		        }
-		        assessment.incrementCurrentQuestionNumber();
-		        if(assessment.getCurrentQuestionNumber() == assessment.getAssessmentSize()){
-		        	if(assessment.getMarks() == assessment.getAssessmentSize()) {
-		        		answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getMarks() + "/" + assessment.getAssessmentSize() + "Fragen richtig beantwortet! \n Du hast keine falsche Antworten! \n " + assessment.getWrongQuestions();
-		        	} else answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getMarks() + "/" + assessment.getAssessmentSize() + "Fragen richtig beantwortet!  \n Du hast keine falsche Antworten: \n " + assessment.getWrongQuestions();
-		            this.assessmentStarted.put(channel, null);
-		            response.put("closeContext", "true");
-		        } else {
-		            answer += assessment.getCurrentQuestion();        
-		        }
-	        }
+			NLUAssessment assessment = this.currentNLUAssessment.get(channel);
+			if(assessment.getType().equals("Text")){
+				if(intent.equals(assessment.getQuitIntent())){
+					answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getSimilarity() + " % erreicht\n";
+					this.assessmentStarted.put(channel, null);
+					response.put("closeContext", "true");
+				} else if(intent.equals(assessment.getHelpIntent())){
+					answer+= assessment.getQuestionHint() + "\n";
+					response.put("closeContext", "false");
+				} else {
+					String msg = bodyJson.getAsString("msg");
+					
+					String textRef = assessment.gettextReference();
+					MiniClient client = new MiniClient();
+					client.setConnectorEndpoint("");
+					System.out.println("Now connecting");
+					HashMap<String, String> headers = new HashMap<String, String>();
+					ClientResponse SimilarityResult = client.sendRequest("POST", "readerbench/"  + "post/textual_similarity", MediaType.APPLICATION_JSON, headers);
+					Assert.assertEquals(200, SimilarityResult.getHttpCode());
+					ClientResponse ComplexityResult = client.sendRequest("POST", "readerbench/"  + "post/textual_complexity", MediaType.APPLICATION_JSON, headers);
+					Assert.assertEquals(200, ComplexityResult.getHttpCode());
+					//TODO: Compute the Assessments
+					String level ="";
+					Double score = 0.0;
+					assessment.setLevel(level);
+					assessment.setSimilarity(score);
+					
+					assessment.incrementCurrentQuestionNumber();
+					if(assessment.getCurrentQuestionNumber() == assessment.getAssessmentSize()){
+						Double OverallScore = 0.0;
+						for (Double score : assessment.getSimilarityScoreList()) {
+							OverallScore += score;	
+						}
+						answer += "Das Assessment ist fertig \n" + "Du hast insgesamt" + OverallScore + " % erreicht\n";
+						answer+= "Du hast folgende text Komplexitäten:\n";
+						int currentQuestion = 0;
+						for (String level : assessment.getLevel) {
+							answer += "Frage " + (currentQuestion + 1) + ": " + level + "\n"; 
+						}
+						this.assessmentStarted.put(channel, null);
+						response.put("closeContext", "true");
+					} else {
+						answer += assessment.getCurrentQuestion();        
+					}
+				}
+			}
+			else{
+				if(intent.equals(assessment.getQuitIntent())){
+					answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getMarks() + "/" + assessment.getCurrentQuestionNumber() + " Fragen richtig beantwortet! \n"; 
+					if(assessment.getMarks() == assessment.getCurrentQuestionNumber()) {
+						answer += "Du hast keine falsche Antworten!";
+					} else answer +=  "Du hast folgende Fragen falsch beantwortet: \n" + assessment.getWrongQuestions();
+					this.assessmentStarted.put(channel, null);
+					response.put("closeContext", "true");
+				} else if(intent.equals(assessment.getHelpIntent())){
+					answer+= assessment.getQuestionHint() + "\n";
+					response.put("closeContext", "false");
+				} else { 
+					if(intent.equals(assessment.getCorrectAnswerIntent())){
+						answer += "Richtige Antwort! \n";
+						assessment.incrementMark(1);
+					} else {
+						answer += "Falsche Antwort :/ \n";
+						assessment.addWrongQuestion();
+					}
+					assessment.incrementCurrentQuestionNumber();
+					if(assessment.getCurrentQuestionNumber() == assessment.getAssessmentSize()){
+						if(assessment.getMarks() == assessment.getAssessmentSize()) {
+							answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getMarks() + "/" + assessment.getAssessmentSize() + "Fragen richtig beantwortet! \n Du hast keine falsche Antworten! \n " + assessment.getWrongQuestions();
+						} else answer += "Das Assessment ist fertig \n" + "Du hast " + assessment.getMarks() + "/" + assessment.getAssessmentSize() + "Fragen richtig beantwortet!  \n Du hast keine falsche Antworten: \n " + assessment.getWrongQuestions();
+						this.assessmentStarted.put(channel, null);
+						response.put("closeContext", "true");
+					} else {
+						answer += assessment.getCurrentQuestion();        
+					}
+				}
+			}
+	        
 	        
         } else if(assessmentType.equals("moodleAssessment")) {
         	MoodleQuiz quiz = this.currentMoodleAssessment.get(channel);
